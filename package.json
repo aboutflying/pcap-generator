@@ -1,0 +1,22 @@
+{
+  "name": "pcap-generator",
+  "version": "1.0.0",
+  "description": "Node.js application for capturing network packets and exporting to CSV",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "capture": "sudo node index.js"
+  },
+  "keywords": [
+    "packet",
+    "capture",
+    "pcap",
+    "network",
+    "csv"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cap": "^0.2.1"
+  }
+}
