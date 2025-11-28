@@ -42,19 +42,15 @@ class PacketCapture {
     const ret = decoders.Ethernet(rawPacket);
 
     if (ret.info.type === PROTOCOL.ETHERNET.IPV4 || ret.info.type === PROTOCOL.ETHERNET.IPV6) {
-      const ipType = ret.info.type === PROTOCOL.ETHERNET.IPV4 ? 'IPv4' : 'IPv6';
-
-      if (ipType === 'IPv4') {
-        ret.info.srcaddr = ret.info.srcaddr;
-        ret.info.dstaddr = ret.info.dstaddr;
-      }
-
-      const datagramInfo = decoders[ipType](rawPacket, ret.offset);
+      const isIPv4 = ret.info.type === PROTOCOL.ETHERNET.IPV4;
+      const datagramInfo = isIPv4
+        ? decoders.IPV4(rawPacket, ret.offset)
+        : decoders.IPV6(rawPacket, ret.offset);
       ret.offset = datagramInfo.offset;
 
       const packetData = {
         timestamp: new Date().toISOString(),
-        protocol: ipType,
+        protocol: isIPv4 ? 'IPv4' : 'IPv6',
         srcIP: datagramInfo.info.srcaddr,
         srcPort: '',
         dstIP: datagramInfo.info.dstaddr,
