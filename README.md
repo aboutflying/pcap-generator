@@ -8,6 +8,7 @@ A Node.js application for capturing network packets and exporting them to CSV fo
 - Support for multiple protocols (TCP, UDP, ICMP, ARP, IPv4, IPv6)
 - Export captured packets to CSV format
 - Timing delta analysis (milliseconds between consecutive packets)
+- Automatic extraction of readable strings from packet payloads
 - BPF (Berkeley Packet Filter) support for filtering packets
 - Command-line interface with various options
 - Real-time packet display in console
@@ -120,17 +121,25 @@ The application exports packets to CSV with the following columns:
 | Destination Port | Destination port number (if applicable) |
 | Length | Total packet length in bytes |
 | Info | Additional packet information |
+| Strings | Printable ASCII strings found in packet payload (minimum 4 characters) |
 
 ### Example CSV Output
 
 ```csv
-Timestamp,Delta (ms),Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info
-2025-11-28T10:30:45.123Z,0,TCP,192.168.1.100,52341,172.217.14.206,443,66,Flags: SYN
-2025-11-28T10:30:45.156Z,33,TCP,172.217.14.206,443,192.168.1.100,52341,66,Flags: SYN,ACK
-2025-11-28T10:30:45.157Z,1,TCP,192.168.1.100,52341,172.217.14.206,443,54,Flags: ACK
-2025-11-28T10:30:45.234Z,77,TCP,192.168.1.100,52341,172.217.14.206,443,571,Flags: PSH,ACK
-2025-11-28T10:30:45.289Z,55,TCP,172.217.14.206,443,192.168.1.100,52341,54,Flags: ACK
+Timestamp,Delta (ms),Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info,Strings
+2025-11-28T10:30:45.123Z,0,TCP,192.168.1.100,52341,172.217.14.206,443,66,Flags: SYN,
+2025-11-28T10:30:45.156Z,33,TCP,172.217.14.206,443,192.168.1.100,52341,66,Flags: SYN,ACK,
+2025-11-28T10:30:45.157Z,1,TCP,192.168.1.100,52341,172.217.14.206,443,54,Flags: ACK,
+2025-11-28T10:30:45.234Z,77,TCP,192.168.1.100,52341,172.217.14.206,443,571,Flags: PSH,ACK,"GET /index.html HTTP/1.1; Host: example.com"
+2025-11-28T10:30:45.289Z,55,TCP,172.217.14.206,443,192.168.1.100,52341,54,Flags: ACK,
+2025-11-28T10:30:46.100Z,811,UDP,192.168.1.100,53241,8.8.8.8,53,89,UDP packet,"google.com"
 ```
+
+The Strings column captures readable text from packet payloads, which is useful for:
+- Identifying HTTP requests and responses
+- Detecting DNS queries
+- Finding application-layer protocols
+- Security analysis and debugging
 
 ## Stopping Capture
 

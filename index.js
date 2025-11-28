@@ -32,7 +32,7 @@ class PacketCapture {
 
   initializeCSV() {
     // Create CSV file with headers
-    const headers = 'Timestamp,Delta (ms),Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info\n';
+    const headers = 'Timestamp,Delta (ms),Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info,Strings\n';
     fs.writeFileSync(this.outputFile, headers);
     this.csvStream = fs.createWriteStream(this.outputFile, { flags: 'a' });
     console.log(`CSV output file: ${this.outputFile}`);
@@ -56,7 +56,8 @@ class PacketCapture {
         dstIP: datagramInfo.info.dstaddr,
         dstPort: '',
         length: rawPacket.length,
-        info: ''
+        info: '',
+        strings: ''
       };
 
       // Parse TCP
@@ -66,6 +67,8 @@ class PacketCapture {
         packetData.srcPort = tcpInfo.info.srcport;
         packetData.dstPort = tcpInfo.info.dstport;
         packetData.info = `Flags: ${this.getTCPFlags(tcpInfo.info.flags)}`;
+        packetData.strings = this.extractStrings(rawPacket, tcpInfo.offset);
+        ret.offset = tcpInfo.offset;
       }
       // Parse UDP
       else if (datagramInfo.info.protocol === PROTOCOL.IP.UDP) {
@@ -74,15 +77,19 @@ class PacketCapture {
         packetData.srcPort = udpInfo.info.srcport;
         packetData.dstPort = udpInfo.info.dstport;
         packetData.info = `UDP packet`;
+        packetData.strings = this.extractStrings(rawPacket, udpInfo.offset);
+        ret.offset = udpInfo.offset;
       }
       // Parse ICMP
       else if (datagramInfo.info.protocol === PROTOCOL.IP.ICMP) {
         packetData.protocol = 'ICMP';
         packetData.info = 'ICMP packet';
+        packetData.strings = this.extractStrings(rawPacket, ret.offset);
       }
       else {
         packetData.protocol = `IP Protocol ${datagramInfo.info.protocol}`;
         packetData.info = 'Other IP protocol';
+        packetData.strings = this.extractStrings(rawPacket, ret.offset);
       }
 
       return packetData;
@@ -97,7 +104,8 @@ class PacketCapture {
         dstIP: arpInfo.info.dstaddr,
         dstPort: '',
         length: rawPacket.length,
-        info: `ARP ${arpInfo.info.opcode === 1 ? 'Request' : 'Reply'}`
+        info: `ARP ${arpInfo.info.opcode === 1 ? 'Request' : 'Reply'}`,
+        strings: ''
       };
     }
 
@@ -113,6 +121,35 @@ class PacketCapture {
     if (flags & 0x10) flagNames.push('ACK');
     if (flags & 0x20) flagNames.push('URG');
     return flagNames.join(',') || 'NONE';
+  }
+
+  extractStrings(buffer, offset, minLength = 4) {
+    const strings = [];
+    let currentString = '';
+
+    for (let i = offset; i < buffer.length; i++) {
+      const byte = buffer[i];
+
+      // Check if byte is printable ASCII (space to tilde: 32-126)
+      if (byte >= 32 && byte <= 126) {
+        currentString += String.fromCharCode(byte);
+      } else {
+        // Non-printable character found
+        if (currentString.length >= minLength) {
+          strings.push(currentString);
+        }
+        currentString = '';
+      }
+    }
+
+    // Don't forget the last string if we ended on printable chars
+    if (currentString.length >= minLength) {
+      strings.push(currentString);
+    }
+
+    // Join with semicolon and truncate if too long
+    const result = strings.join('; ');
+    return result.length > 200 ? result.substring(0, 197) + '...' : result;
   }
 
   escapeCSV(value) {
@@ -143,7 +180,8 @@ class PacketCapture {
       this.escapeCSV(packetData.dstIP),
       this.escapeCSV(packetData.dstPort),
       this.escapeCSV(packetData.length),
-      this.escapeCSV(packetData.info)
+      this.escapeCSV(packetData.info),
+      this.escapeCSV(packetData.strings)
     ].join(',') + '\n';
 
     this.csvStream.write(row);
