@@ -7,6 +7,7 @@ A Node.js application for capturing network packets and exporting them to CSV fo
 - Capture network packets from any network interface
 - Support for multiple protocols (TCP, UDP, ICMP, ARP, IPv4, IPv6)
 - Export captured packets to CSV format
+- Timing delta analysis (milliseconds between consecutive packets)
 - BPF (Berkeley Packet Filter) support for filtering packets
 - Command-line interface with various options
 - Real-time packet display in console
@@ -111,6 +112,7 @@ The application exports packets to CSV with the following columns:
 | Column | Description |
 |--------|-------------|
 | Timestamp | ISO 8601 timestamp of packet capture |
+| Delta (ms) | Time elapsed in milliseconds since the previous packet (0 for first packet) |
 | Protocol | Protocol type (TCP, UDP, ICMP, ARP, etc.) |
 | Source IP | Source IP address |
 | Source Port | Source port number (if applicable) |
@@ -122,10 +124,12 @@ The application exports packets to CSV with the following columns:
 ### Example CSV Output
 
 ```csv
-Timestamp,Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info
-2025-11-28T10:30:45.123Z,TCP,192.168.1.100,52341,172.217.14.206,443,66,Flags: SYN
-2025-11-28T10:30:45.156Z,TCP,172.217.14.206,443,192.168.1.100,52341,66,Flags: SYN,ACK
-2025-11-28T10:30:45.157Z,TCP,192.168.1.100,52341,172.217.14.206,443,54,Flags: ACK
+Timestamp,Delta (ms),Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info
+2025-11-28T10:30:45.123Z,0,TCP,192.168.1.100,52341,172.217.14.206,443,66,Flags: SYN
+2025-11-28T10:30:45.156Z,33,TCP,172.217.14.206,443,192.168.1.100,52341,66,Flags: SYN,ACK
+2025-11-28T10:30:45.157Z,1,TCP,192.168.1.100,52341,172.217.14.206,443,54,Flags: ACK
+2025-11-28T10:30:45.234Z,77,TCP,192.168.1.100,52341,172.217.14.206,443,571,Flags: PSH,ACK
+2025-11-28T10:30:45.289Z,55,TCP,172.217.14.206,443,192.168.1.100,52341,54,Flags: ACK
 ```
 
 ## Stopping Capture

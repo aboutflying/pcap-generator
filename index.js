@@ -16,6 +16,7 @@ class PacketCapture {
     this.cap = new Cap();
     this.buffer = Buffer.alloc(65535);
     this.csvStream = null;
+    this.previousTimestamp = null;
   }
 
   getDefaultInterface() {
@@ -31,7 +32,7 @@ class PacketCapture {
 
   initializeCSV() {
     // Create CSV file with headers
-    const headers = 'Timestamp,Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info\n';
+    const headers = 'Timestamp,Delta (ms),Protocol,Source IP,Source Port,Destination IP,Destination Port,Length,Info\n';
     fs.writeFileSync(this.outputFile, headers);
     this.csvStream = fs.createWriteStream(this.outputFile, { flags: 'a' });
     console.log(`CSV output file: ${this.outputFile}`);
@@ -128,8 +129,18 @@ class PacketCapture {
   }
 
   writePacketToCSV(packetData) {
+    const currentTime = new Date(packetData.timestamp);
+    let delta = 0;
+
+    if (this.previousTimestamp !== null) {
+      delta = Math.round(currentTime - this.previousTimestamp);
+    }
+
+    this.previousTimestamp = currentTime;
+
     const row = [
       this.escapeCSV(packetData.timestamp),
+      this.escapeCSV(delta),
       this.escapeCSV(packetData.protocol),
       this.escapeCSV(packetData.srcIP),
       this.escapeCSV(packetData.srcPort),
